@@ -81,12 +81,14 @@ class Variable:
                     i_elem, i_local_node = data.structure.node_master_elem[self.node, :]
                     psi = data.structure.timestep_info[timestep_index].psi[i_elem, i_local_node, :]
                     matrix = transformation(psi)
-                    ini_vel_a = data.structure.timestep_info[0].for_vel[:3]
+                    ini_vel_a = data.structure.timestep_info[0].for_vel[:3]*0
                     if self.name == 'pos_dot':
                         # not to be commited::: only for MPC one off
                         for_vel = data.structure.timestep_info[timestep_index].for_vel[:3]
+                        for_omega = data.structure.timestep_info[timestep_index].for_vel[3:]
+                        pos = data.structure.timestep_info[timestep_index].pos[self.node, :]
                         pos_dot = data.structure.timestep_info[timestep_index].pos_dot[self.node, :]
-                        glob_vel_a = for_vel + pos_dot
+                        glob_vel_a = for_vel + np.cross(for_omega, pos) + pos_dot
                         ini_quat_a = data.structure.timestep_info[0].quat
 
                         perturb_vel_a = glob_vel_a - ini_vel_a

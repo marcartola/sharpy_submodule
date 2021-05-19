@@ -204,12 +204,10 @@ def to_custom_types(dictionary, types, default, options=dict(), no_ctype=False):
 def check_settings_in_options(settings, settings_types, settings_options):
     """
     Checks that settings given a type ``str`` or ``int`` and allowable options are indeed valid.
-
     Args:
         settings (dict): Dictionary of processed settings
         settings_types (dict): Dictionary of settings types
         settings_options (dict): Dictionary of options (may be empty)
-
     Raises:
         exception.NotValidSetting: if the setting is not allowed.
     """
@@ -239,11 +237,9 @@ def check_settings_in_options(settings, settings_types, settings_options):
 
 def load_config_file(file_name: str) -> dict:
     """This function reads the flight condition and solver input files.
-
     Args:
         file_name (str): contains the path and file name of the file to be read by the ``configparser``
             reader.
-
     Returns:
         config (dict): a ``ConfigParser`` object that behaves like a dictionary
     """
@@ -278,31 +274,22 @@ def notify_default_value(k, v):
 class SettingsTable:
     """
     Generates the documentation's setting table at runtime.
-
     Sphinx is our chosen documentation manager and takes docstrings in reStructuredText format. Given that the SHARPy
     solvers contain several settings, this class produces a table in reStructuredText format with the solver's settings
     and adds it to the solver's docstring.
-
     This table will then be printed alongside the remaining docstrings.
-
     To generate the table, parse the setting's description to a solver dictionary named ``settings_description``, in a
     similar fashion to what is done with ``settings_types`` and ``settings_default``. If no description is given it will
     be left blank.
-
     Then, add at the end of the solver's class declaration method an instance of the ``SettingsTable`` class and a call
     to the ``SettingsTable.generate()`` method.
-
     Examples:
         The end of the solver's class declaration should contain
-
         .. code-block:: python
-
             # Generate documentation table
             settings_table = settings.SettingsTable()
             __doc__ += settings_table.generate(settings_types, settings_default, settings_description)
-
         to generate the settings table.
-
     """
     def __init__(self):
         self.n_fields = 4
@@ -323,14 +310,11 @@ class SettingsTable:
     def generate(self, settings_types, settings_default, settings_description, settings_options=dict(), header_line=None):
         """
         Returns a rst-format table with the settings' names, types, description and default values
-
         Args:
             settings_types (dict): Setting types.
             settings_default (dict): Settings default value.
             settings_description (dict): Setting description.
-
             header_line (str): Header line description (optional)
-
         Returns:
             str: .rst formatted string with a table containing the settings' information.
         """

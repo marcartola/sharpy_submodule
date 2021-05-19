@@ -110,10 +110,19 @@ class LinearUVLM(ss_interface.BaseElement):
     settings_description['remove_inputs'] = 'List of inputs to remove. ``u_gust`` to remove external velocity input.'
     settings_options['remove_inputs'] = ['u_gust']
 
+#    settings_types['gust_assembler'] = 'str'
+#    settings_default['gust_assembler'] = ''
+#    settings_description['gust_assembler'] = 'Selected linear gust assembler.'
+#    settings_options['gust_assembler'] = ['leading_edge']
+
     settings_types['gust_assembler'] = 'str'
     settings_default['gust_assembler'] = ''
     settings_description['gust_assembler'] = 'Selected linear gust assembler.'
-    settings_options['gust_assembler'] = ['leading_edge']
+    settings_options['gust_assembler'] = ['LeadingEdge', 'MultiLeadingEdge']
+
+    settings_types['gust_assembler_inputs'] = 'dict'
+    settings_default['gust_assembler_inputs'] = dict()
+    settings_description['gust_assembler_inputs'] = 'Selected linear gust assembler parameter inputs.'
 
     settings_types['rom_method'] = 'list(str)'
     settings_default['rom_method'] = []
@@ -233,10 +242,13 @@ class LinearUVLM(ss_interface.BaseElement):
                 self.rom[rom_name] = rom_interface.initialise_rom(rom_name)
                 self.rom[rom_name].initialise(self.settings['rom_method_settings'][rom_name])
 
-        if 'u_gust' not in self.settings['remove_inputs'] and self.settings['gust_assembler'] == 'leading_edge':
+        if 'u_gust' not in self.settings['remove_inputs'] and self.settings['gust_assembler'] != '':
+            #import sharpy.linear.assembler.lineargustassembler as lineargust
+            #self.gust_assembler = lineargust.LinearGustGenerator()
+            #self.gust_assembler.initialise(data.aero)
             import sharpy.linear.assembler.lineargustassembler as lineargust
-            self.gust_assembler = lineargust.LinearGustGenerator()
-            self.gust_assembler.initialise(data.aero)
+            self.gust_assembler = lineargust.gust_from_string(self.settings['gust_assembler'])
+            self.gust_assembler.initialise(data.aero, self.sys, self.tsaero0, custom_settings=self.settings['gust_assembler_inputs'])
 
     def assemble(self, track_body=False):
         r"""
@@ -265,10 +277,11 @@ class LinearUVLM(ss_interface.BaseElement):
             self.remove_inputs(self.settings['remove_inputs'])
 
         if self.gust_assembler is not None:
-            A, B, C, D = self.gust_assembler.generate(self.sys, aero=None)
-            ss_gust = libss.ss(A, B, C, D, dt=self.ss.dt)
-            self.gust_assembler.ss_gust = ss_gust
-            self.ss = libss.series(ss_gust, self.ss)
+           # A, B, C, D = self.gust_assembler.generate(self.sys, aero=None)
+           # ss_gust = libss.ss(A, B, C, D, dt=self.ss.dt)
+           # self.gust_assembler.ss_gust = ss_gust
+           # self.ss = libss.series(ss_gust, self.ss)
+           self.ss = self.gust_assembler.apply(self.ss)
 
         if self.control_surface is not None:
             Kzeta_delta, Kdzeta_ddelta = self.control_surface.generate()
