@@ -21,6 +21,8 @@ import sharpy.utils.rom_interface as rom_interface
 import sharpy.rom.utils.librom as librom
 import sharpy.linear.src.libss as libss
 import time
+import sharpy.utils.h5utils as h5
+import h5py
 
 dict_of_balancing_roms = dict()
 
@@ -95,12 +97,34 @@ class Direct(BaseBalancedRom):
         settings.to_custom_types(self.settings, self.settings_types, self.settings_default, self.settings_options,
                                  no_ctype=True)
 
+    def save(self, filename):
+        """
+        Saves to an ``.h5`` file of name ``filename`` the left and right projectors and the reduced order model
+
+        Args:
+            filename (str): path and filename to which to save the data
+
+        """
+        rom_projectors = {'right_projector': self.Ti,
+                'left_projector': self.T,
+                          }
+        if '.h5' not in filename[-3:]:
+            filename += '.h5'
+
+        with h5py.File(filename, 'a') as outfile:
+            h5.add_as_grp(rom_projectors, outfile, grpname='projectors',
+                          compress_float=True)
+            h5.add_as_grp(self.ssrom, outfile,
+                          grpname='ssrom',
+                          #ClassesToSave=(libss.ss, ),
+                          compress_float=True)
+
     def run(self, ss):
         if self.print_info:
             cout.cout_wrap('Reducing system using a Direct balancing method...')
         t0 = time.time()
         A, B, C, D = ss.get_mats()
-
+        
         try:
             if ss.dt is not None:
                 dtsystem = True
@@ -139,6 +163,13 @@ class Direct(BaseBalancedRom):
                     cout.cout_wrap('ROM by direct balancing is stable')
             t2 = time.time()
             cout.cout_wrap('\t...completed reduction in %.2fs' % (t2-t0), 1)
+            
+            # added by marc 24/05/2021
+            self.ssrom = ssrom
+            self.Tinv = Tinv
+            self.T = T
+            #
+
             return ssrom
         else:
             return ss_bal
@@ -234,10 +265,34 @@ class FrequencyLimited(BaseBalancedRom):
                                  self.settings_options_default, no_ctype=True)
         settings.to_custom_types(self.settings['options_high'], self.settings_options_types,
                                  self.settings_options_default, no_ctype=True)
+    def save(self, filename):
+        """
+        Saves to an ``.h5`` file of name ``filename`` the left and right projectors and the reduced order model
+    
+        Args:
+            filename (str): path and filename to which to save the data
+    
+        """
+        rom_projectors = {'right_projector': self.Ti,
+                'left_projector': self.T,
+                          }
+        if '.h5' not in filename[-3:]:
+            filename += '.h5'
+
+        with h5py.File(filename, 'a') as outfile:
+            h5.add_as_grp(rom_projectors, outfile, grpname='projectors',
+                          compress_float=True)
+            h5.add_as_grp(self.ssrom, outfile,
+                          grpname='ssrom',
+                          #ClassesToSave=(libss.ss, ),
+                          compress_float=True)
 
     def run(self, ss):
 
         output_results = librom.balfreq(ss, self.settings)
+        self.T = output_results[2]
+        self.Ti = output_results[3]
+        self.ssrom = output_results[0]
 
         return output_results[0]
 
@@ -355,6 +410,17 @@ class Balanced(rom_interface.BaseRom):
         self.algorithm = dict_of_balancing_roms[self.settings['algorithm']]()
         self.algorithm.initialise(self.settings['algorithm_settings'])
         self.algorithm.print_info = self.settings['print_info']
+
+    def save(self, filename):
+        """
+        Saves to an ``.h5`` file of name ``filename`` the left and right projectors and the reduced order model
+    
+        Args:
+            filename (str): path and filename to which to save the data
+    
+        """
+
+        self.algorithm.save(filename)
 
     def run(self, ss):
 
